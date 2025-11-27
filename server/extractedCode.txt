@@ -1,0 +1,646 @@
+import { Controller, Post, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
+import { extname } from 'path';
+@Controller('upload')
+export class UploadController {
+  @Post()
+  @UseInterceptors(FileInterceptor('file', {
+    storage: diskStorage({
+      destination: './uploads',
+      filename: (req, file, callback) => {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+        const ext = extname(file.originalname);
+        callback(null, `${uniqueSuffix}${ext}`);
+      },
+    }),
+  }))
+  uploadFile(@UploadedFile() file: Express.Multer.File) {
+    return {
+      url: `http://localhost:3000/uploads/${file.filename}`
+    };
+  }
+}
+import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { CategoriesService } from './categories.service';
+import { CreateCategoryDto } from './dto/create-category.dto';
+import { UpdateCategoryDto } from './dto/update-category.dto';
+@Controller('categories')
+export class CategoriesController {
+  constructor(private readonly categoriesService: CategoriesService) {}
+  @Post()
+  create(@Body() createCategoryDto: CreateCategoryDto) {
+    return this.categoriesService.create(createCategoryDto);
+  }
+  @Get()
+  findAll() {
+    return this.categoriesService.findAll();
+  }
+  @Get(':id')
+  findOne(@Param('id') id: string) {
+    return this.categoriesService.findOne(+id);
+  }
+  @Patch(':id')
+  update(@Param('id') id: string, @Body() updateCategoryDto: UpdateCategoryDto) {
+    return this.categoriesService.update(+id, updateCategoryDto);
+  }
+  @Delete(':id')
+  remove(@Param('id') id: string) {
+    return this.categoriesService.remove(+id);
+  }
+}
+export class Category {}
+import { Injectable } from '@nestjs/common';
+import { CreateCategoryDto } from './dto/create-category.dto';
+import { PrismaService } from '../prisma/prisma.service';
+@Injectable()
+export class CategoriesService {
+  constructor(private prisma: PrismaService) {}
+  create(createCategoryDto: CreateCategoryDto) {
+    return this.prisma.category.create({
+      data: createCategoryDto,
+    });
+  }
+  findAll() {
+    return this.prisma.category.findMany({
+      orderBy: { sort: 'asc' } 
+    });
+  }
+  findOne(id: number) { return `This action returns a #${id} category`; }
+  update(id: number, updateCategoryDto: any) { return `This action updates a #${id} category`; }
+  remove(id: number) { return `This action removes a #${id} category`; }
+}
+import { Module } from '@nestjs/common';
+import { CategoriesService } from './categories.service';
+import { CategoriesController } from './categories.controller';
+import { PrismaService } from '../prisma/prisma.service'; 
+@Module({
+  controllers: [CategoriesController],
+  providers: [CategoriesService, PrismaService] 
+})
+export class CategoriesModule {}
+import { PartialType } from '@nestjs/mapped-types';
+import { CreateCategoryDto } from './create-category.dto';
+export class UpdateCategoryDto extends PartialType(CreateCategoryDto) {}
+export class CreateCategoryDto {
+  name: string;
+  sort?: number; 
+}
+import { WebSocketGateway, WebSocketServer } from '@nestjs/websockets';
+import { Server } from 'socket.io';
+@WebSocketGateway({
+  cors: {
+    origin: '*', 
+  },
+})
+export class EventsGateway {
+  @WebSocketServer()
+  server: Server;
+  sendNewOrderEvent(order: any) {
+    this.server.emit('newOrder', order);
+  }
+}
+export class Order {}
+import { Injectable } from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
+import { EventsGateway } from '../events/events.gateway';
+@Injectable()
+export class OrdersService {
+  constructor(
+    private prisma: PrismaService,
+    private eventsGateway: EventsGateway
+  ) {}
+  async create(userId: number, createOrderDto: any) {
+    const { items, totalPrice, tableNumber } = createOrderDto;
+    let initialStatus = 0; 
+    try {
+      const config = await this.prisma.systemConfig.findUnique({
+        where: { key: 'auto_accept' }
+      });
+      if (config && config.value === 'true') {
+        initialStatus = 1; 
+      }
+    } catch (e) {
+      console.log('读取自动接单配置失败，使用默认值');
+    }
+    const order = await this.prisma.order.create({
+      data: {
+        totalPrice,
+        userId,
+        tableNumber, 
+        status: initialStatus,
+        items: {
+          create: items.map((item: any) => ({
+            productName: item.name,
+            price: item.price,
+            count: 1
+          })),
+        },
+      },
+      include: { items: true, user: true }
+    });
+    const statusText = initialStatus === 1 ? '自动接单' : '待接单';
+    console.log(`🔥🔥🔥 收到新订单: ID[${order.id}] 桌号[${tableNumber}] 状态[${statusText}]`);
+    this.eventsGateway.sendNewOrderEvent(order);
+    return order;
+  }
+  findAll(query: any = {}) {
+    const { startDate, endDate, userId, minPrice, maxPrice } = query;
+    const where: any = {};
+    if (startDate && endDate) {
+      where.createTime = {
+        gte: new Date(startDate),
+        lte: new Date(endDate),
+      };
+    }
+    if (userId) where.userId = Number(userId);
+    if (minPrice || maxPrice) {
+      where.totalPrice = {};
+      if (minPrice) where.totalPrice.gte = Number(minPrice) * 100;
+      if (maxPrice) where.totalPrice.lte = Number(maxPrice) * 100;
+    }
+    return this.prisma.order.findMany({
+      where,
+      orderBy: { createTime: 'desc' },
+      include: { items: true, user: true }
+    });
+  }
+  findMine(userId: number) {
+    return this.prisma.order.findMany({
+      where: { userId },
+      orderBy: { createTime: 'desc' },
+      include: { items: true }
+    });
+  }
+  async update(id: number, updateOrderDto: any) {
+    const order = await this.prisma.order.update({
+      where: { id },
+      data: updateOrderDto,
+    });
+    this.eventsGateway.server.emit('orderUpdated', order);
+    return order;
+  }
+}
+import { Controller, Get, Post, Body, Patch, Param, ParseIntPipe, UseGuards, Request, Query } from '@nestjs/common';
+import { OrdersService } from './orders.service';
+import { AuthGuard } from '@nestjs/passport'; 
+@Controller('orders')
+export class OrdersController {
+  constructor(private readonly ordersService: OrdersService) {}
+  @UseGuards(AuthGuard('jwt')) 
+  @Post()
+  create(@Request() req, @Body() createOrderDto: any) {
+    const userId = req.user.userId;
+    return this.ordersService.create(userId, createOrderDto);
+  }
+  @UseGuards(AuthGuard('jwt'))
+  @Get('mine')
+  findMine(@Request() req) {
+    const userId = req.user.userId;
+    return this.ordersService.findMine(userId);
+  }
+  @Get()
+  findAll(@Query() query: any) {
+    return this.ordersService.findAll(query);
+  }
+  @Patch(':id')
+  update(@Param('id', ParseIntPipe) id: number, @Body() updateOrderDto: any) {
+    return this.ordersService.update(id, updateOrderDto);
+  }
+}
+import { Module } from '@nestjs/common';
+import { OrdersService } from './orders.service';
+import { OrdersController } from './orders.controller';
+import { PrismaService } from '../prisma/prisma.service';
+import { EventsGateway } from '../events/events.gateway'; 
+@Module({
+  controllers: [OrdersController],
+  providers: [OrdersService, PrismaService, EventsGateway], 
+})
+export class OrdersModule {}
+export class CreateOrderDto {}
+import { PartialType } from '@nestjs/mapped-types';
+import { CreateOrderDto } from './create-order.dto';
+export class UpdateOrderDto extends PartialType(CreateOrderDto) {}
+import { Controller, Get } from '@nestjs/common';
+import { AppService } from './app.service';
+@Controller()
+export class AppController {
+  constructor(private readonly appService: AppService) {}
+  @Get()
+  getHello(): string {
+    return this.appService.getHello();
+  }
+}
+import { Controller, Get, Body, Post, Param } from '@nestjs/common';
+import { ConfigsService } from './configs.service';
+@Controller('configs')
+export class ConfigsController {
+  constructor(private readonly configsService: ConfigsService) {}
+  @Get(':key')
+  findOne(@Param('key') key: string) {
+    return this.configsService.findOne(key);
+  }
+  @Post()
+  update(@Body() body: { key: string; value: string }) {
+    return this.configsService.update(body.key, body.value);
+  }
+}
+export class Config {}
+import { Injectable } from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
+@Injectable()
+export class ConfigsService {
+  constructor(private prisma: PrismaService) {}
+  async findOne(key: string) {
+    const config = await this.prisma.systemConfig.findUnique({ where: { key } });
+    return config || { key, value: 'false' };
+  }
+  async update(key: string, value: string) {
+    return this.prisma.systemConfig.upsert({
+      where: { key },
+      update: { value },
+      create: { key, value, description: '自动接单开关' },
+    });
+  }
+}
+import { Module } from '@nestjs/common';
+import { ConfigsService } from './configs.service';
+import { ConfigsController } from './configs.controller';
+import { PrismaService } from '../prisma/prisma.service'; 
+@Module({
+  controllers: [ConfigsController],
+  providers: [ConfigsService, PrismaService], 
+})
+export class ConfigsModule {}
+import { PartialType } from '@nestjs/mapped-types';
+import { CreateConfigDto } from './create-config.dto';
+export class UpdateConfigDto extends PartialType(CreateConfigDto) {}
+export class CreateConfigDto {}
+export class User {}
+import { Module } from '@nestjs/common';
+import { UsersService } from './users.service';
+import { UsersController } from './users.controller';
+import { PrismaService } from '../prisma/prisma.service'; 
+@Module({
+  controllers: [UsersController],
+  providers: [UsersService, PrismaService], 
+})
+export class UsersModule {}
+import { Controller, Get, Body, Patch, UseGuards, Request } from '@nestjs/common';
+import { UsersService } from './users.service';
+import { AuthGuard } from '@nestjs/passport';
+@Controller('users')
+export class UsersController {
+  constructor(private readonly usersService: UsersService) {}
+  @UseGuards(AuthGuard('jwt'))
+  @Get('profile')
+  getProfile(@Request() req) {
+    return this.usersService.findOne(req.user.userId);
+  }
+  @UseGuards(AuthGuard('jwt'))
+  @Patch('profile')
+  updateProfile(@Request() req, @Body() updateUserDto: any) {
+    return this.usersService.update(req.user.userId, updateUserDto);
+  }
+}
+import { Injectable } from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
+@Injectable()
+export class UsersService {
+  constructor(private prisma: PrismaService) {}
+  findOne(id: number) {
+    return this.prisma.user.findUnique({
+      where: { id }
+    });
+  }
+  update(id: number, updateUserDto: any) {
+    return this.prisma.user.update({
+      where: { id },
+      data: updateUserDto,
+    });
+  }
+}
+export class CreateUserDto {}
+import { PartialType } from '@nestjs/mapped-types';
+import { CreateUserDto } from './create-user.dto';
+export class UpdateUserDto extends PartialType(CreateUserDto) {}
+import { Test, TestingModule } from '@nestjs/testing';
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
+describe('AppController', () => {
+  let appController: AppController;
+  beforeEach(async () => {
+    const app: TestingModule = await Test.createTestingModule({
+      controllers: [AppController],
+      providers: [AppService],
+    }).compile();
+    appController = app.get<AppController>(AppController);
+  });
+  describe('root', () => {
+    it('should return "Hello World!"', () => {
+      expect(appController.getHello()).toBe('Hello World!');
+    });
+  });
+});
+import { Module } from '@nestjs/common';
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
+import { ServeStaticModule } from '@nestjs/serve-static';
+import { join } from 'path';
+import { AuthModule } from './auth/auth.module';
+import { UsersModule } from './users/users.module';
+import { CategoriesModule } from './categories/categories.module';
+import { ProductsModule } from './products/products.module';
+import { OrdersModule } from './orders/orders.module';
+import { TablesModule } from './tables/tables.module';   
+import { ConfigsModule } from './configs/configs.module'; 
+import { UploadController } from './upload/upload.controller';
+@Module({
+  imports: [
+    ServeStaticModule.forRoot({
+      rootPath: join(__dirname, '..', 'uploads'),
+      serveRoot: '/uploads',
+    }),
+    AuthModule,
+    UsersModule,
+    CategoriesModule,
+    ProductsModule,
+    OrdersModule,
+    TablesModule, 
+    ConfigsModule, 
+  ],
+  controllers: [AppController, UploadController],
+  providers: [AppService],
+})
+export class AppModule {}
+import { Injectable, OnModuleInit } from '@nestjs/common';
+import { PrismaClient } from '@prisma/client';
+@Injectable()
+export class PrismaService extends PrismaClient implements OnModuleInit {
+  async onModuleInit() {
+    await this.$connect();
+  }
+}
+import { Injectable } from '@nestjs/common';
+@Injectable()
+export class AppService {
+  getHello(): string {
+    return 'Hello World!';
+  }
+}
+import { Module } from '@nestjs/common';
+import { AuthService } from './auth.service';
+import { AuthController } from './auth.controller';
+import { JwtModule } from '@nestjs/jwt';
+import { PrismaService } from '../prisma/prisma.service';
+import { PassportModule } from '@nestjs/passport';
+import { JwtStrategy } from './jwt.strategy'; 
+@Module({
+  imports: [
+    PassportModule,
+    JwtModule.register({
+      secret: 'my-secret-key-123', 
+      signOptions: { expiresIn: '7d' }, 
+    }),
+  ],
+  controllers: [AuthController],
+  providers: [AuthService, PrismaService, JwtStrategy],
+  exports: [AuthService]
+})
+export class AuthModule {}
+import { Test, TestingModule } from '@nestjs/testing';
+import { AuthController } from './auth.controller';
+describe('AuthController', () => {
+  let controller: AuthController;
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      controllers: [AuthController],
+    }).compile();
+    controller = module.get<AuthController>(AuthController);
+  });
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+  });
+});
+import { Test, TestingModule } from '@nestjs/testing';
+import { AuthService } from './auth.service';
+describe('AuthService', () => {
+  let service: AuthService;
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [AuthService],
+    }).compile();
+    service = module.get<AuthService>(AuthService);
+  });
+  it('should be defined', () => {
+    expect(service).toBeDefined();
+  });
+});
+import { Injectable } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
+import { PrismaService } from '../prisma/prisma.service';
+import axios from 'axios';
+@Injectable()
+export class AuthService {
+  constructor(
+    private prisma: PrismaService,
+    private jwtService: JwtService
+  ) {}
+  async login(code: string) {
+    const appId = process.env.WECHAT_APPID;
+    const secret = process.env.WECHAT_SECRET;
+    const url = `https://api.weixin.qq.com/sns/jscode2session?appid=${appId}&secret=${secret}&js_code=${code}&grant_type=authorization_code`;
+    const { data } = await axios.get(url);
+    if (data.errcode) {
+      throw new Error(`微信登录失败: ${data.errmsg}`);
+    }
+    const openid = data.openid;
+    let user = await this.prisma.user.findUnique({
+      where: { openid }
+    });
+    if (!user) {
+      user = await this.prisma.user.create({
+        data: { openid }
+      });
+    }
+    const payload = { sub: user.id, openid: user.openid };
+    return {
+      token: this.jwtService.sign(payload), 
+      user
+    };
+  }
+}
+import { ExtractJwt, Strategy } from 'passport-jwt';
+import { PassportStrategy } from '@nestjs/passport';
+import { Injectable } from '@nestjs/common';
+@Injectable()
+export class JwtStrategy extends PassportStrategy(Strategy) {
+  constructor() {
+    super({
+      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(), 
+      ignoreExpiration: false,
+      secretOrKey: 'my-secret-key-123', 
+    });
+  }
+  async validate(payload: any) {
+    return { userId: payload.sub, openid: payload.openid };
+  }
+}
+import { Controller, Post, Body } from '@nestjs/common';
+import { AuthService } from './auth.service';
+@Controller('auth')
+export class AuthController {
+  constructor(private readonly authService: AuthService) {}
+  @Post('login')
+  async login(@Body('code') code: string) {
+    return this.authService.login(code);
+  }
+}
+import { NestFactory } from '@nestjs/core';
+import { AppModule } from './app.module';
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule);
+  app.enableCors(); 
+  await app.listen(3000, '0.0.0.0');
+}
+bootstrap();
+export class Product {}
+import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { ProductsService } from './products.service';
+import { CreateProductDto } from './dto/create-product.dto';
+@Controller('products')
+export class ProductsController {
+  constructor(private readonly productsService: ProductsService) {}
+  @Post()
+  create(@Body() createProductDto: CreateProductDto) {
+    return this.productsService.create(createProductDto);
+  }
+  @Get()
+  findAll() {
+    return this.productsService.findAll();
+  }
+}
+import { Module } from '@nestjs/common';
+import { ProductsService } from './products.service';
+import { ProductsController } from './products.controller';
+import { PrismaService } from '../prisma/prisma.service'; 
+@Module({
+  controllers: [ProductsController],
+  providers: [ProductsService, PrismaService], 
+})
+export class ProductsModule {}
+import { Injectable } from '@nestjs/common';
+import { CreateProductDto } from './dto/create-product.dto';
+import { PrismaService } from '../prisma/prisma.service';
+@Injectable()
+export class ProductsService {
+  constructor(private prisma: PrismaService) {}
+  create(createProductDto: CreateProductDto) {
+    return this.prisma.product.create({
+      data: createProductDto,
+    });
+  }
+  findAll() {
+    return this.prisma.product.findMany({
+      include: { category: true }, 
+      orderBy: { createTime: 'desc' }
+    });
+  }
+  findByCategory(categoryId: number) {
+    return this.prisma.product.findMany({
+      where: { categoryId },
+      orderBy: { id: 'desc' }
+    });
+  }
+  findOne(id: number) { return `This action returns a #${id} product`; }
+  update(id: number, updateProductDto: any) { return `This action updates a #${id} product`; }
+  remove(id: number) { return `This action removes a #${id} product`; }
+}
+import { PartialType } from '@nestjs/mapped-types';
+import { CreateProductDto } from './create-product.dto';
+export class UpdateProductDto extends PartialType(CreateProductDto) {}
+export class CreateProductDto {
+  name: string;
+  price: number; 
+  description?: string;
+  image?: string;
+  stock?: number;
+  categoryId: number; 
+}
+export class Table {}
+import { Controller, Get, Post, Body, Param, Delete } from '@nestjs/common';
+import { TablesService } from './tables.service';
+@Controller('tables')
+export class TablesController {
+  constructor(private readonly tablesService: TablesService) {}
+  @Post()
+  create(@Body() createTableDto: any) {
+    return this.tablesService.create(createTableDto);
+  }
+  @Get()
+  findAll() {
+    return this.tablesService.findAll();
+  }
+  @Delete(':id')
+  remove(@Param('id') id: string) {
+    return this.tablesService.remove(+id);
+  }
+}
+import { Injectable } from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
+@Injectable()
+export class TablesService {
+  constructor(private prisma: PrismaService) {}
+  create(createTableDto: any) {
+    return this.prisma.table.create({
+      data: createTableDto,
+    });
+  }
+  findAll() {
+    return this.prisma.table.findMany({
+      orderBy: { sort: 'asc' }
+    });
+  }
+  remove(id: number) {
+    return this.prisma.table.delete({
+      where: { id },
+    });
+  }
+  findOne(id: number) { return `Action #${id}`; }
+  update(id: number, updateTableDto: any) { return `Action #${id}`; }
+}
+import { Module } from '@nestjs/common';
+import { TablesService } from './tables.service';
+import { TablesController } from './tables.controller';
+import { PrismaService } from '../prisma/prisma.service'; 
+@Module({
+  controllers: [TablesController],
+  providers: [TablesService, PrismaService], 
+})
+export class TablesModule {}
+export class CreateTableDto {}
+import { PartialType } from '@nestjs/mapped-types';
+import { CreateTableDto } from './create-table.dto';
+export class UpdateTableDto extends PartialType(CreateTableDto) {}
+import { Test, TestingModule } from '@nestjs/testing';
+import { INestApplication } from '@nestjs/common';
+import request from 'supertest';
+import { App } from 'supertest/types';
+import { AppModule } from './../src/app.module';
+describe('AppController (e2e)', () => {
+  let app: INestApplication<App>;
+  beforeEach(async () => {
+    const moduleFixture: TestingModule = await Test.createTestingModule({
+      imports: [AppModule],
+    }).compile();
+    app = moduleFixture.createNestApplication();
+    await app.init();
+  });
+  it('/ (GET)', () => {
+    return request(app.getHttpServer())
+      .get('/')
+      .expect(200)
+      .expect('Hello World!');
+  });
+});

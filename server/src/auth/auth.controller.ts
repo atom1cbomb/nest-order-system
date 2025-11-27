@@ -1,0 +1,13 @@
+// [认证控制] 微信登录接口与凭证发放控制器
+import { Controller, Post, Body } from '@nestjs/common';
+import { AuthService } from './auth.service';
+
+@Controller('auth')
+export class AuthController {
+  constructor(private readonly authService: AuthService) {}
+
+  @Post('login')
+  async login(@Body('code') code: string) {
+    return this.authService.login(code);
+  }
+}

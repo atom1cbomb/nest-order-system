@@ -1,0 +1,22 @@
+/* admin/src/style.css */
+
+/* 清除浏览器默认边距 */
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* 确保根节点占满全屏 */
+#app {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+/* 让所有元素使用标准盒模型 */
+*, *::before, *::after {
+  box-sizing: border-box;
+}

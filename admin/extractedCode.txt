@@ -1,0 +1,748 @@
+// [桌号页面] 餐厅桌号生成与管理界面
+<template>
+  <div class="page-container">
+    <el-card shadow="hover" class="main-card">
+      <div class="header-actions">
+        <div class="title">桌号管理</div>
+        <el-button type="primary" icon="Plus" @click="handleCreate">添加桌号</el-button>
+      </div>
+      <el-table :data="tableData" border style="width: 100%; margin-top: 20px;" v-loading="loading" stripe>
+        <el-table-column prop="sort" label="排序" width="100" align="center" />
+        <el-table-column prop="name" label="桌号" align="center">
+          <template #default="scope">
+            <el-tag effect="dark" size="large">{{ scope.row.name }}</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="150" align="center">
+          <template #default="scope">
+            <el-button type="danger" link icon="Delete" @click="handleDelete(scope.row.id)">删除</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+    </el-card>
+    <el-dialog v-model="dialogVisible" title="添加桌号" width="400px">
+      <el-form :model="form" label-width="80px">
+        <el-form-item label="名称" required>
+          <el-input v-model="form.name" placeholder="如: A01, VIP1" />
+        </el-form-item>
+        <el-form-item label="排序">
+          <el-input-number v-model="form.sort" :min="1" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="dialogVisible = false">取消</el-button>
+          <el-button type="primary" @click="submitForm">确定</el-button>
+        </span>
+      </template>
+    </el-dialog>
+  </div>
+</template>
+<script setup lang="ts">
+import { ref, onMounted } from 'vue'
+import request from '../utils/request'
+import { Plus, Delete } from '@element-plus/icons-vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
+const loading = ref(false)
+const tableData = ref([])
+const dialogVisible = ref(false)
+const form = ref({ name: '', sort: 1 })
+const fetchList = async () => {
+  loading.value = true
+  try {
+    const res = await request.get('/tables')
+    tableData.value = res as any
+  } finally { loading.value = false }
+}
+const handleCreate = () => {
+  form.value = { name: '', sort: 1 }
+  dialogVisible.value = true
+}
+const submitForm = async () => {
+  if (!form.value.name) return ElMessage.warning('请输入名称')
+  try {
+    await request.post('/tables', form.value)
+    ElMessage.success('添加成功')
+    dialogVisible.value = false
+    fetchList()
+  } catch(e) { ElMessage.error('添加失败，可能是桌号重复') }
+}
+const handleDelete = (id: number) => {
+  ElMessageBox.confirm('确认删除？', '提示', { type: 'warning' }).then(async () => {
+    await request.delete(`/tables/${id}`)
+    ElMessage.success('删除成功')
+    fetchList()
+  })
+}
+onMounted(() => fetchList())
+</script>
+<style scoped>
+.page-container { padding: 20px; background-color: #f0f2f5; min-height: 100vh; }
+.main-card { border-radius: 8px; }
+.header-actions { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.title { font-size: 18px; font-weight: bold; color: #303133; border-left: 4px solid #409EFF; padding-left: 10px; }
+</style>
+// [分类页面] 菜品分类列表展示与维护界面
+<template>
+  <div class="page-container">
+    <el-card shadow="hover" class="main-card">
+      <div class="header-actions">
+        <div class="title">分类列表</div>
+        <el-button type="primary" size="default" icon="Plus" @click="handleCreate">新增分类</el-button>
+      </div>
+      <el-table 
+        :data="tableData" 
+        style="width: 100%; margin-top: 20px;" 
+        v-loading="loading"
+        border
+        stripe
+        :header-cell-style="{ background: '#f5f7fa', color: '#606266' }"
+      >
+        <el-table-column prop="id" label="ID" width="80" align="center" />
+        <el-table-column prop="name" label="分类名称">
+          <template #default="scope">
+            <el-tag effect="plain">{{ scope.row.name }}</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="sort" label="排序权重" width="100" align="center" />
+        <el-table-column label="创建时间" width="180" align="center">
+          <template #default="scope">
+            {{ formatTime(scope.row.createTime) }}
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="150" align="center">
+          <template #default="scope">
+            <el-button type="danger" link icon="Delete" @click="handleDelete(scope.row.id)">删除</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+    </el-card>
+    <el-dialog v-model="dialogVisible" title="新增分类" width="400px" destroy-on-close>
+      <el-form :model="form" label-width="80px">
+        <el-form-item label="名称" required>
+          <el-input v-model="form.name" placeholder="例如：盖浇饭" />
+        </el-form-item>
+        <el-form-item label="排序">
+          <el-input-number v-model="form.sort" :min="1" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="dialogVisible = false">取消</el-button>
+          <el-button type="primary" @click="submitForm">确定</el-button>
+        </span>
+      </template>
+    </el-dialog>
+  </div>
+</template>
+<script setup lang="ts">
+import { ref, onMounted } from 'vue'
+import request from '../utils/request'
+import { formatTime } from '../utils/format' // 引入工具函数
+import { Plus, Delete } from '@element-plus/icons-vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
+const loading = ref(false)
+const tableData = ref([])
+const dialogVisible = ref(false)
+const form = ref({ name: '', sort: 1 })
+const fetchList = async () => {
+  loading.value = true
+  try {
+    const res = await request.get('/categories')
+    tableData.value = res as any
+  } finally {
+    loading.value = false
+  }
+}
+const handleCreate = () => {
+  form.value = { name: '', sort: 1 }
+  dialogVisible.value = true
+}
+const submitForm = async () => {
+  if (!form.value.name) return ElMessage.warning('请输入名称')
+  await request.post('/categories', form.value)
+  ElMessage.success('添加成功')
+  dialogVisible.value = false
+  fetchList()
+}
+const handleDelete = (id: number) => {
+  ElMessageBox.confirm('确定要删除吗？', '提示', { type: 'warning' })
+    .then(async () => {
+      await request.delete(`/categories/${id}`)
+      ElMessage.success('删除成功')
+      fetchList()
+    })
+}
+onMounted(() => fetchList())
+</script>
+<style scoped>
+.page-container { padding: 20px; background-color: #f0f2f5; min-height: 100vh; }
+.main-card { border-radius: 8px; }
+.header-actions { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.title { font-size: 18px; font-weight: bold; color: #303133; border-left: 4px solid #409EFF; padding-left: 10px; }
+</style>
+// [菜品页面] 菜品图文信息录入与上下架管理界面
+<template>
+  <div class="page-container">
+    <el-card shadow="hover" class="main-card">
+      <div class="header-actions">
+        <div class="title">菜品列表</div>
+        <el-button type="primary" icon="Plus" @click="handleCreate">新增菜品</el-button>
+      </div>
+      <el-table 
+        :data="tableData" 
+        style="width: 100%; margin-top: 20px;" 
+        v-loading="loading"
+        border
+        stripe
+        :header-cell-style="{ background: '#f5f7fa', color: '#606266' }"
+      >
+        <el-table-column prop="id" label="ID" width="80" align="center" />
+        <el-table-column label="图片" width="120" align="center">
+          <template #default="scope">
+            <el-image 
+  style="width: 60px; height: 60px; border-radius: 4px; border: 1px solid #eee;"
+  :src="scope.row.image || '/default.png'" 
+  :preview-src-list="[scope.row.image || '/default.png']"
+  fit="cover"
+>
+  <template #error>
+    <div class="image-slot">
+      <img src="/default.png" style="width: 100%; height: 100%; object-fit: cover;" />
+    </div>
+  </template>
+</el-image>
+          </template>
+        </el-table-column>
+        <el-table-column prop="name" label="菜品名称" min-width="150" />
+        <el-table-column label="价格" width="120">
+          <template #default="scope">
+            <span style="color: #f56c6c; font-weight: bold;">¥ {{ formatPrice(scope.row.price) }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="分类" width="120" align="center">
+          <template #default="scope">
+            <el-tag type="success" v-if="scope.row.category">{{ scope.row.category.name }}</el-tag>
+            <el-tag type="info" v-else>未分类</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="stock" label="库存" width="100" align="center" />
+        <el-table-column label="创建时间" width="180" align="center">
+          <template #default="scope">{{ formatTime(scope.row.createTime) }}</template>
+        </el-table-column>
+        <el-table-column label="操作" width="120" align="center">
+          <template #default="scope">
+            <el-button type="danger" link icon="Delete" @click="handleDelete(scope.row.id)">下架</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+    </el-card>
+    <el-dialog v-model="dialogVisible" title="编辑菜品" width="500px">
+      <el-form :model="form" label-width="80px">
+        <el-form-item label="名称" required><el-input v-model="form.name" /></el-form-item>
+        <el-form-item label="分类" required>
+          <el-select v-model="form.categoryId" placeholder="请选择" style="width: 100%">
+            <el-option v-for="c in categoryList" :key="c.id" :label="c.name" :value="c.id" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="价格(元)" required>
+          <el-input-number v-model="form.priceYuan" :precision="2" :step="1" :min="0" />
+        </el-form-item>
+        <el-form-item label="库存">
+          <el-input-number v-model="form.stock" :min="0" />
+        </el-form-item>
+        <el-form-item label="图片">
+          <el-upload
+            class="avatar-uploader"
+            action="/api/upload"
+            :show-file-list="false"
+            :on-success="handleUploadSuccess"
+            :before-upload="beforeUpload"
+          >
+            <img v-if="form.image" :src="form.image" class="avatar" />
+            <el-icon v-else class="avatar-uploader-icon"><Plus /></el-icon>
+          </el-upload>
+        </el-form-item>
+        <el-form-item label="描述"><el-input type="textarea" v-model="form.description" /></el-form-item>
+      </el-form>
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="dialogVisible = false">取消</el-button>
+          <el-button type="primary" @click="submitForm">确定</el-button>
+        </span>
+      </template>
+    </el-dialog>
+  </div>
+</template>
+<script setup lang="ts">
+import { ref, onMounted } from 'vue'
+import request from '../utils/request'
+import { formatTime, formatPrice } from '../utils/format'
+import { Plus, Delete, Picture } from '@element-plus/icons-vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import type { UploadProps } from 'element-plus'
+const loading = ref(false)
+const tableData = ref([])
+const categoryList = ref<any[]>([])
+const dialogVisible = ref(false)
+const form = ref<any>({ name: '', categoryId: null, priceYuan: 0, stock: 999, image: '', description: '' })
+const fetchData = async () => {
+  loading.value = true
+  try {
+    const [pRes, cRes] = await Promise.all([request.get('/products'), request.get('/categories')])
+    tableData.value = pRes as any
+    categoryList.value = cRes as any
+  } finally { loading.value = false }
+}
+const handleCreate = () => {
+  form.value = { name: '', categoryId: null, priceYuan: 0, stock: 999, image: '', description: '' }
+  dialogVisible.value = true
+}
+const submitForm = async () => {
+  if (!form.value.name || !form.value.categoryId) return ElMessage.warning('请填写完整')
+  const submitData = { ...form.value, price: Math.round(form.value.priceYuan * 100) }
+  delete submitData.priceYuan
+  await request.post('/products', submitData)
+  ElMessage.success('操作成功')
+  dialogVisible.value = false
+  fetchData()
+}
+const handleDelete = (id: number) => {
+  ElMessageBox.confirm('确认下架？', '提示', { type: 'warning' }).then(async () => {
+    // await request.delete(`/products/${id}`)
+    ElMessage.info('演示环境暂不删除')
+  })
+}
+// 上传逻辑
+const handleUploadSuccess: UploadProps['onSuccess'] = (res) => { form.value.image = res.url }
+const beforeUpload: UploadProps['beforeUpload'] = (file) => {
+  if (file.size / 1024 / 1024 > 2) { ElMessage.error('图片需小于2MB'); return false }
+  return true
+}
+onMounted(() => fetchData())
+</script>
+<style scoped>
+.page-container { padding: 20px; background-color: #f0f2f5; min-height: 100vh; }
+.main-card { border-radius: 8px; }
+.header-actions { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.title { font-size: 18px; font-weight: bold; color: #303133; border-left: 4px solid #409EFF; padding-left: 10px; }
+.avatar-uploader .el-upload { border: 1px dashed #d9d9d9; border-radius: 6px; cursor: pointer; position: relative; overflow: hidden; }
+.avatar-uploader .el-upload:hover { border-color: #409EFF; }
+.avatar-uploader-icon { font-size: 28px; color: #8c939d; width: 100px; height: 100px; text-align: center; line-height: 100px; }
+.avatar { width: 100px; height: 100px; display: block; object-fit: cover; }
+.image-slot { display: flex; justify-content: center; align-items: center; width: 100%; height: 100%; background: #f5f7fa; color: #909399; font-size: 20px; }
+</style>
+// [订单页面] 实时订单监控、筛选与状态操作界面
+<template>
+  <div class="page-container">
+    <el-card shadow="never" class="filter-card">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <div class="title">订单管理</div>
+        <div style="display: flex; align-items: center;">
+          <span style="margin-right: 10px; font-size: 14px; color: #606266;">自动接单</span>
+          <el-switch 
+            v-model="autoAccept" 
+            inline-prompt 
+            active-text="开" 
+            inactive-text="关"
+            @change="handleAutoAcceptChange"
+          />
+        </div>
+      </div>
+      <el-form :inline="true" :model="queryForm" class="demo-form-inline">
+        <el-form-item label="用户ID">
+          <el-input v-model="queryForm.userId" placeholder="输入ID" clearable style="width: 120px;" />
+        </el-form-item>
+        <el-form-item label="金额">
+          <el-input v-model="queryForm.minPrice" placeholder="最低" style="width: 80px;" />
+          <span style="margin: 0 5px; color:#999">-</span>
+          <el-input v-model="queryForm.maxPrice" placeholder="最高" style="width: 80px;" />
+        </el-form-item>
+        <el-form-item label="时间">
+          <el-date-picker
+            v-model="dateRange"
+            type="daterange"
+            range-separator="至"
+            start-placeholder="开始"
+            end-placeholder="结束"
+            value-format="YYYY-MM-DD"
+            style="width: 240px;"
+          />
+        </el-form-item>
+        <el-form-item>
+          <el-button type="primary" icon="Search" @click="handleSearch">查询</el-button>
+          <el-button icon="Refresh" @click="resetSearch">重置</el-button>
+        </el-form-item>
+      </el-form>
+    </el-card>
+    <el-card shadow="hover" class="table-card">
+      <el-table :data="tableData" border style="width: 100%" v-loading="loading" stripe :header-cell-style="{ background: '#f5f7fa', color: '#606266' }">
+        <el-table-column type="expand">
+          <template #default="props">
+            <div style="padding: 15px 30px; background: #fafafa;">
+              <h4 style="margin: 0 0 10px 0; color: #606266;">📦 订单明细</h4>
+              <el-table :data="props.row.items" size="small" border>
+                <el-table-column prop="productName" label="菜品" />
+                <el-table-column prop="count" label="数量" width="80" align="center" />
+                <el-table-column label="单价" align="right">
+                  <template #default="scope">¥ {{ formatPrice(scope.row.price) }}</template>
+                </el-table-column>
+              </el-table>
+            </div>
+          </template>
+        </el-table-column>
+        <el-table-column prop="id" label="单号" width="80" align="center" />
+        <el-table-column label="金额" width="120" align="right">
+          <template #default="scope">
+            <span style="color: #f56c6c; font-weight: bold; font-family: 'DIN';">¥ {{ formatPrice(scope.row.totalPrice) }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="桌号" width="100" align="center">
+          <template #default="scope">
+            <el-tag effect="dark" type="danger" size="large" style="font-weight: bold; border: none;">
+              {{ scope.row.tableNumber || '自提' }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="用户信息" min-width="160">
+          <template #default="scope">
+            <div v-if="scope.row.user" style="display: flex; flex-direction: column;">
+              <span style="font-weight: bold; color: #333;">{{ scope.row.user.nickname || '未设置昵称' }}</span>
+              <span style="font-size: 12px; color: #909399; font-family: monospace;">ID: {{ getVipNo(scope.row.user.openid) }}</span>
+            </div>
+            <el-tag type="info" v-else>游客</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="状态" width="120" align="center">
+          <template #default="scope">
+            <el-tag v-if="scope.row.status === 0" type="danger" effect="dark">待接单</el-tag>
+            <el-tag v-else-if="scope.row.status === 1" type="warning" effect="dark">制作中</el-tag>
+            <el-tag v-else type="success" effect="plain">已完成</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="下单时间" width="180" align="center">
+          <template #default="scope">{{ formatTime(scope.row.createTime) }}</template>
+        </el-table-column>
+        <el-table-column label="操作" width="150" align="center" fixed="right">
+          <template #default="scope">
+            <el-button v-if="scope.row.status === 0" type="primary" size="small" @click="handleStatus(scope.row.id, 1)">接单</el-button>
+            <el-button v-if="scope.row.status === 1" type="success" size="small" @click="handleStatus(scope.row.id, 2)">完成</el-button>
+            <span v-if="scope.row.status === 2" style="color: #999; font-size: 12px;">已完成</span>
+          </template>
+        </el-table-column>
+      </el-table>
+    </el-card>
+  </div>
+</template>
+<script setup lang="ts">
+import { ref, onMounted } from 'vue'
+import request from '../utils/request'
+import { formatTime, formatPrice } from '../utils/format'
+import { Search, Refresh } from '@element-plus/icons-vue'
+import { ElMessage } from 'element-plus'
+import { io } from "socket.io-client";
+const loading = ref(false)
+const tableData = ref([])
+const queryForm = ref({ userId: '', minPrice: '', maxPrice: '' })
+const dateRange = ref([])
+const autoAccept = ref(false) // 自动接单状态
+const getVipNo = (openid: string) => openid ? openid.substring(openid.length - 8).toUpperCase() : '------'
+const fetchConfig = async () => {
+  try {
+    const res: any = await request.get('/configs/auto_accept')
+    autoAccept.value = res.value === 'true'
+  } catch (e) {}
+}
+const handleAutoAcceptChange = async (val: boolean) => {
+  try {
+    await request.post('/configs', {
+      key: 'auto_accept',
+      value: String(val)
+    })
+    ElMessage.success(val ? '已开启自动接单' : '已关闭自动接单')
+  } catch (e) {
+    autoAccept.value = !val
+    ElMessage.error('设置失败')
+  }
+}
+const fetchList = async () => {
+  loading.value = true
+  try {
+    const params: any = { ...queryForm.value }
+    if (dateRange.value?.length === 2) {
+      params.startDate = dateRange.value[0] + ' 00:00:00'
+      params.endDate = dateRange.value[1] + ' 23:59:59'
+    }
+    const res = await request.get('/orders', { params })
+    tableData.value = res as any
+  } finally { loading.value = false }
+}
+const handleSearch = () => fetchList()
+const resetSearch = () => { queryForm.value = { userId: '', minPrice: '', maxPrice: '' }; dateRange.value = []; fetchList() }
+const handleStatus = async (id: number, status: number) => {
+  try {
+    await request.patch(`/orders/${id}`, { status })
+    ElMessage.success('状态已更新')
+    fetchList() 
+  } catch (e) { ElMessage.error('操作失败') }
+}
+onMounted(() => {
+  fetchList()
+  fetchConfig() // 加载配置
+  // 实时监听新订单
+  const socket = io('http://localhost:3000', { transports: ['websocket'] });
+  socket.on('newOrder', () => { 
+    if (!queryForm.value.userId && !queryForm.value.minPrice) fetchList() 
+  });
+})
+</script>
+<style scoped>
+.page-container { padding: 20px; background-color: #f0f2f5; min-height: 100vh; }
+.filter-card { margin-bottom: 20px; border-radius: 8px; border: none; }
+.table-card { border-radius: 8px; border: none; }
+.title { font-size: 18px; font-weight: bold; color: #303133; border-left: 4px solid #409EFF; padding-left: 10px; }
+</style>
+<script setup lang="ts">
+import { ref } from 'vue'
+defineProps<{ msg: string }>()
+const count = ref(0)
+</script>
+<template>
+  <h1>{{ msg }}</h1>
+  <div class="card">
+    <button type="button" @click="count++">count is {{ count }}</button>
+    <p>
+      Edit
+      <code>components/HelloWorld.vue</code> to test HMR
+    </p>
+  </div>
+  <p>
+    Check out
+    <a href="https://vuejs.org/guide/quick-start.html#local" target="_blank"
+      >create-vue</a
+    >, the official Vue + Vite starter
+  </p>
+  <p>
+    Learn more about IDE Support for Vue in the
+    <a
+      href="https://vuejs.org/guide/scaling-up/tooling.html#ide-support"
+      target="_blank"
+      >Vue Docs Scaling up Guide</a
+    >.
+  </p>
+  <p class="read-the-docs">Click on the Vite and Vue logos to learn more</p>
+</template>
+<style scoped>
+.read-the-docs {
+  color: #888;
+}
+</style>
+// [根组件] 后台管理系统标准布局（侧边栏+顶栏）容器
+<template>
+  <div class="layout-container">
+    <aside class="sidebar">
+      <div class="logo-box">
+        <span class="logo-text">点餐管理后台</span>
+      </div>
+      <el-menu
+        router
+        :default-active="$route.path"
+        background-color="#304156"
+        text-color="#bfcbd9"
+        active-text-color="#409EFF"
+        class="el-menu-vertical"
+      >
+        <el-menu-item index="/">
+          <el-icon><Menu /></el-icon>
+          <span>分类管理</span>
+        </el-menu-item>
+        <el-menu-item index="/product">
+          <el-icon><Food /></el-icon>
+          <span>菜品管理</span>
+        </el-menu-item>
+        <el-menu-item index="/table">
+          <el-icon><Ticket /></el-icon>
+          <span>桌号管理</span>
+        </el-menu-item>
+        <el-menu-item index="/order">
+          <el-icon><List /></el-icon>
+          <span>订单管理</span>
+        </el-menu-item>
+      </el-menu>
+    </aside>
+    <div class="main-wrapper">
+      <header class="navbar">
+        <div class="navbar-left">
+          <el-breadcrumb separator="/">
+            <el-breadcrumb-item :to="{ path: '/' }">首页</el-breadcrumb-item>
+            <el-breadcrumb-item>{{ $route.meta.title }}</el-breadcrumb-item>
+          </el-breadcrumb>
+        </div>
+        <div class="navbar-right">
+          <el-dropdown>
+            <span class="avatar-wrapper">
+              <el-avatar :size="32" src="https://cube.elemecdn.com/0/88/03b0d39583f48206768a7534e55bcpng.png" />
+              <span class="username">管理员</span>
+              <el-icon><CaretBottom /></el-icon>
+            </span>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item>退出登录</el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
+        </div>
+      </header>
+      <main class="app-main">
+        <router-view v-slot="{ Component }">
+          <transition name="fade" mode="out-in">
+            <component :is="Component" />
+          </transition>
+        </router-view>
+      </main>
+    </div>
+  </div>
+</template>
+<script setup lang="ts">
+import { onMounted, onUnmounted } from 'vue'
+import { Menu, Food, List, Ticket, CaretBottom } from '@element-plus/icons-vue'
+import { io } from "socket.io-client";
+import { ElNotification } from 'element-plus'
+// 连接 WebSocket
+const socket = io('http://localhost:3000', {
+  transports: ['websocket'],
+  reconnection: true
+});
+onMounted(() => {
+  // 1. 连接成功
+  socket.on('connect', () => {
+    console.log('✅ [Admin] WebSocket 连接成功！ID:', socket.id);
+  });
+  // 2. 监听新订单 (带桌号)
+  socket.on('newOrder', (data: any) => {
+    console.log('📦 [Admin] 收到新订单:', data);
+    ElNotification({
+      title: '🔔 新订单提醒',
+      message: `[${data.tableNumber || '自提'}] 金额：¥${(data.totalPrice / 100).toFixed(2)}`,
+      type: 'success',
+      duration: 0, // 不自动关闭
+      position: 'bottom-right'
+    })
+  });
+})
+onUnmounted(() => {
+  if(socket) socket.disconnect();
+})
+</script>
+<style>
+/* --- 全局重置 --- */
+body { 
+  margin: 0; 
+  padding: 0; 
+  height: 100%; 
+  overflow: hidden; 
+  background-color: #f0f2f5; 
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; 
+}
+#app { height: 100%; }
+/* --- 布局容器 --- */
+.layout-container { display: flex; height: 100vh; width: 100vw; }
+/* --- 左侧 Sidebar --- */
+.sidebar {
+  width: 220px;
+  background-color: #304156;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0; 
+  box-shadow: 2px 0 6px rgba(0,21,41,.35);
+  z-index: 10;
+  text-align: left;
+}
+/* --- Logo 区域 --- */
+.logo-box {
+  height: 64px; /* 高度微调 */
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background-color: #2b3649;
+  color: #fff;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+.sidebar-logo {
+  width: 30px;
+  height: 30px;
+  margin-right: 12px;
+  display: block;
+  object-fit: contain;
+}
+.logo-text { 
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  line-height: 1;
+  display: block;
+  padding-top: 2px; 
+}
+/* --- 菜单样式修复 (强制居中对齐) --- */
+.el-menu-vertical { border-right: none !important; }
+.el-menu-item {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start;
+  height: 56px;
+  padding-left: 24px !important;
+}
+.el-menu-item .el-icon {
+  width: 24px;
+  text-align: center;
+  font-size: 18px;
+  margin-right: 12px;
+  vertical-align: middle;
+  color: inherit;
+  transform: translateY(-1px);
+}
+.el-menu-item span {
+  font-size: 14px;
+  letter-spacing: 1px;
+  vertical-align: middle;
+}
+/* --- 右侧 Wrapper --- */
+.main-wrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background-color: #f0f2f5;
+  text-align: left;
+}
+/* --- 顶部 Header --- */
+.navbar {
+  height: 60px;
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(0,21,41,.08);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  z-index: 9;
+}
+.avatar-wrapper {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  color: #606266;
+}
+.username { margin: 0 6px 0 10px; font-weight: 500; }
+/* --- 主内容区 --- */
+.app-main {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  position: relative;
+}
+/* --- 页面切换动画 --- */
+.fade-enter-active, .fade-leave-active { transition: opacity 0.2s ease; }
+.fade-enter-from, .fade-leave-to { opacity: 0; }
+</style>
