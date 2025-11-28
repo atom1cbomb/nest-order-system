@@ -65,8 +65,17 @@
           <template #default="scope">{{ formatTime(scope.row.createTime) }}</template>
         </el-table-column>
 
-        <el-table-column label="操作" width="150" align="center">
+        <el-table-column label="操作" width="220" align="center">
           <template #default="scope">
+            <el-button 
+              type="primary" 
+              link 
+              icon="Edit" 
+              @click="handleEdit(scope.row)"
+            >
+              编辑
+            </el-button>
+
             <el-button 
               v-if="scope.row.status === 1"
               type="danger" 
@@ -91,7 +100,7 @@
       </el-table>
     </el-card>
 
-    <el-dialog v-model="dialogVisible" title="编辑菜品" width="500px">
+    <el-dialog v-model="dialogVisible" :title="form.id ? '编辑菜品' : '新增菜品'" width="500px">
       <el-form :model="form" label-width="80px">
         <el-form-item label="名称" required><el-input v-model="form.name" /></el-form-item>
         <el-form-item label="分类" required>
@@ -133,7 +142,7 @@
 import { ref, onMounted } from 'vue'
 import request from '../utils/request'
 import { formatTime, formatPrice } from '../utils/format'
-import { Plus, Delete, Upload } from '@element-plus/icons-vue' // 引入 Upload 图标
+import { Plus, Delete, Upload, Edit } from '@element-plus/icons-vue' // 引入 Edit 图标
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { UploadProps } from 'element-plus'
 
@@ -154,21 +163,59 @@ const fetchData = async () => {
   } finally { loading.value = false }
 }
 
-// 打开新增弹窗重置表单
+/**
+ * @description 打开新增弹窗重置表单
+ */
 const handleCreate = () => {
-  form.value = { name: '', categoryId: null, priceYuan: 0, stock: 999, image: '', description: '', status: 1 }
+  // 显式清空 id 以确保是新增模式
+  form.value = { id: undefined, name: '', categoryId: null, priceYuan: 0, stock: 999, image: '', description: '', status: 1 }
   dialogVisible.value = true
 }
 
-// 提交菜品表单
+/**
+ * @description 打开编辑弹窗并回显数据
+ * @param {object} row 当前行数据
+ */
+const handleEdit = (row: any) => {
+  // 深拷贝避免直接修改表格数据，并处理价格单位（分转元）
+  form.value = { 
+    ...row, 
+    priceYuan: row.price / 100,
+    // 确保 categoryId 存在，防止后端未返回 id 字段只返回 category 对象的情况
+    categoryId: row.categoryId || (row.category ? row.category.id : null)
+  }
+  dialogVisible.value = true
+}
+
+/**
+ * @description 提交菜品表单（区分新增与编辑）
+ */
 const submitForm = async () => {
   if (!form.value.name || !form.value.categoryId) return ElMessage.warning('请填写完整')
+  
+  // 构造提交数据，价格元转分
   const submitData = { ...form.value, price: Math.round(form.value.priceYuan * 100) }
   delete submitData.priceYuan
-  await request.post('/products', submitData)
-  ElMessage.success('操作成功')
-  dialogVisible.value = false
-  fetchData()
+  // 移除可能存在的关联对象，避免提交多余数据
+  delete submitData.category 
+  delete submitData.createTime
+  delete submitData.updateTime
+
+  try {
+    if (form.value.id) {
+      // 编辑模式：调用 Patch 接口
+      await request.patch(`/products/${form.value.id}`, submitData)
+    } else {
+      // 新增模式：调用 Post 接口
+      await request.post('/products', submitData)
+    }
+    ElMessage.success('操作成功')
+    dialogVisible.value = false
+    fetchData()
+  } catch (error) {
+    console.error(error)
+    // 错误处理通常由 request 拦截器统一处理，这里可省略或保留
+  }
 }
 
 // 下架菜品逻辑 (status -> 0)

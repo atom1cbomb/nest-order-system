@@ -19,11 +19,13 @@
         :header-cell-style="{ background: '#f5f7fa', color: '#606266' }"
       >
         <el-table-column prop="id" label="ID" width="80" align="center" />
+        
         <el-table-column prop="name" label="分类名称">
           <template #default="scope">
             <el-tag effect="plain">{{ scope.row.name }}</el-tag>
           </template>
         </el-table-column>
+
         <el-table-column prop="sort" label="排序权重" width="100" align="center" />
         
         <el-table-column label="创建时间" width="180" align="center">
@@ -34,19 +36,27 @@
         
         <el-table-column label="操作" width="150" align="center">
           <template #default="scope">
-            <el-button type="danger" link icon="Delete" @click="handleDelete(scope.row.id)">删除</el-button>
+            <el-button 
+              type="danger" 
+              link 
+              icon="Delete" 
+              @click="handleDelete(scope.row.id)"
+            >
+              删除
+            </el-button>
           </template>
         </el-table-column>
       </el-table>
     </el-card>
 
-    <el-dialog v-model="dialogVisible" title="新增分类" width="400px" destroy-on-close>
+    <el-dialog v-model="dialogVisible" title="新增分类" width="400px">
       <el-form :model="form" label-width="80px">
         <el-form-item label="名称" required>
-          <el-input v-model="form.name" placeholder="例如：盖浇饭" />
+          <el-input v-model="form.name" placeholder="请输入分类名称" />
         </el-form-item>
-        <el-form-item label="排序">
-          <el-input-number v-model="form.sort" :min="1" />
+        <el-form-item label="排序" required>
+          <el-input-number v-model="form.sort" :min="0" :max="999" />
+          <div class="tips">数字越小越靠前</div>
         </el-form-item>
       </el-form>
       <template #footer>
@@ -60,8 +70,6 @@
 </template>
 
 <script setup lang="ts">
-
-
 import { ref, onMounted } from 'vue'
 import request from '../utils/request'
 import { formatTime } from '../utils/format'
@@ -74,40 +82,69 @@ const tableData = ref([])
 const dialogVisible = ref(false)
 const form = ref({ name: '', sort: 1 })
 
-// 获取分类列表
+/**
+ * @description 获取分类列表数据
+ */
 const fetchList = async () => {
   loading.value = true
   try {
     const res = await request.get('/categories')
     tableData.value = res as any
+  } catch (error) {
+    console.error('获取分类列表失败:', error)
   } finally {
     loading.value = false
   }
 }
 
-// 打开新增弹窗
+/**
+ * @description 打开新增弹窗，重置表单
+ */
 const handleCreate = () => {
   form.value = { name: '', sort: 1 }
   dialogVisible.value = true
 }
 
-// 提交分类信息
+/**
+ * @description 提交分类表单
+ */
 const submitForm = async () => {
   if (!form.value.name) return ElMessage.warning('请输入名称')
-  await request.post('/categories', form.value)
-  ElMessage.success('添加成功')
-  dialogVisible.value = false
-  fetchList()
+  try {
+    await request.post('/categories', form.value)
+    ElMessage.success('添加成功')
+    dialogVisible.value = false
+    fetchList()
+  } catch (error) {
+    console.error(error)
+    // 错误已由拦截器处理
+  }
 }
 
-// 删除分类
+/**
+ * @description 删除分类
+ * @param {number} id - 分类ID
+ */
 const handleDelete = (id: number) => {
-  ElMessageBox.confirm('确定要删除吗？', '提示', { type: 'warning' })
-    .then(async () => {
+  ElMessageBox.confirm('确定要删除该分类吗？若该分类下包含菜品，可能导致删除失败。', '警告', { 
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'warning' 
+  }).then(async () => {
+    try {
+      // 发起删除请求
       await request.delete(`/categories/${id}`)
       ElMessage.success('删除成功')
-      fetchList()
-    })
+      // 删除成功后刷新列表
+      await fetchList()
+    } catch (error: any) {
+      // 捕获异常，防止未捕获的 Promise 错误
+      // 具体的错误提示消息 'request.ts' 拦截器已经弹出了，这里只需记录日志
+      console.error('删除操作未完成:', error)
+    }
+  }).catch(() => {
+    // 用户点击取消
+  })
 }
 
 onMounted(() => fetchList())
@@ -116,6 +153,7 @@ onMounted(() => fetchList())
 <style scoped>
 .page-container { padding: 20px; background-color: #f0f2f5; min-height: 100vh; }
 .main-card { border-radius: 8px; }
-.header-actions { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.header-actions { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
 .title { font-size: 18px; font-weight: bold; color: #303133; border-left: 4px solid #409EFF; padding-left: 10px; }
+.tips { font-size: 12px; color: #909399; margin-left: 10px; line-height: 32px; }
 </style>
