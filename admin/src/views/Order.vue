@@ -1,4 +1,8 @@
-// [订单页面] 实时订单监控、筛选与状态操作界面
+/**
+ * @file Order.vue
+ * @description 订单管理页面，包含实时订单监控、状态流转（接单/完成）及自动接单设置
+ */
+
 <template>
   <div class="page-container">
     <el-card shadow="never" class="filter-card">
@@ -112,6 +116,7 @@
 </template>
 
 <script setup lang="ts">
+
 import { ref, onMounted } from 'vue'
 import request from '../utils/request'
 import { formatTime, formatPrice } from '../utils/format'
@@ -119,16 +124,17 @@ import { Search, Refresh } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { io } from "socket.io-client";
 
+// 数据状态定义
 const loading = ref(false)
 const tableData = ref([])
 const queryForm = ref({ userId: '', minPrice: '', maxPrice: '' })
 const dateRange = ref([])
-const autoAccept = ref(false) // 自动接单状态
+const autoAccept = ref(false) 
 
-
+// 格式化用户ID显示
 const getVipNo = (openid: string) => openid ? openid.substring(openid.length - 8).toUpperCase() : '------'
 
-
+// 获取自动接单配置
 const fetchConfig = async () => {
   try {
     const res: any = await request.get('/configs/auto_accept')
@@ -136,6 +142,7 @@ const fetchConfig = async () => {
   } catch (e) {}
 }
 
+// 切换自动接单开关
 const handleAutoAcceptChange = async (val: boolean) => {
   try {
     await request.post('/configs', {
@@ -149,6 +156,7 @@ const handleAutoAcceptChange = async (val: boolean) => {
   }
 }
 
+// 获取订单列表
 const fetchList = async () => {
   loading.value = true
   try {
@@ -162,9 +170,11 @@ const fetchList = async () => {
   } finally { loading.value = false }
 }
 
+// 搜索与重置
 const handleSearch = () => fetchList()
 const resetSearch = () => { queryForm.value = { userId: '', minPrice: '', maxPrice: '' }; dateRange.value = []; fetchList() }
 
+// 更改订单状态（接单/完成）
 const handleStatus = async (id: number, status: number) => {
   try {
     await request.patch(`/orders/${id}`, { status })
@@ -175,9 +185,9 @@ const handleStatus = async (id: number, status: number) => {
 
 onMounted(() => {
   fetchList()
-  fetchConfig() // 加载配置
+  fetchConfig()
   
-  // 实时监听新订单
+  // 建立 WebSocket 监听新订单
   const socket = io('http://localhost:3000', { transports: ['websocket'] });
   socket.on('newOrder', () => { 
     if (!queryForm.value.userId && !queryForm.value.minPrice) fetchList() 

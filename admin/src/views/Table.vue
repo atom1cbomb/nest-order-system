@@ -1,4 +1,7 @@
-// [桌号页面] 餐厅桌号生成与管理界面
+/**
+ * @file Table.vue
+ * @description 桌号管理页面，用于餐厅桌号的生成、排序与删除
+ */
 <template>
   <div class="page-container">
     <el-card shadow="hover" class="main-card">
@@ -16,8 +19,6 @@
           </template>
         </el-table-column>
         
-       
-
         <el-table-column label="操作" width="150" align="center">
           <template #default="scope">
             <el-button type="danger" link icon="Delete" @click="handleDelete(scope.row.id)">删除</el-button>
@@ -46,16 +47,20 @@
 </template>
 
 <script setup lang="ts">
+
+
 import { ref, onMounted } from 'vue'
 import request from '../utils/request'
 import { Plus, Delete } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
+// 状态定义
 const loading = ref(false)
 const tableData = ref([])
 const dialogVisible = ref(false)
 const form = ref({ name: '', sort: 1 })
 
+// 获取桌号列表
 const fetchList = async () => {
   loading.value = true
   try {
@@ -64,11 +69,13 @@ const fetchList = async () => {
   } finally { loading.value = false }
 }
 
+// 初始化新增表单
 const handleCreate = () => {
   form.value = { name: '', sort: 1 }
   dialogVisible.value = true
 }
 
+// 提交新增请求
 const submitForm = async () => {
   if (!form.value.name) return ElMessage.warning('请输入名称')
   try {
@@ -79,6 +86,7 @@ const submitForm = async () => {
   } catch(e) { ElMessage.error('添加失败，可能是桌号重复') }
 }
 
+// 删除桌号
 const handleDelete = (id: number) => {
   ElMessageBox.confirm('确认删除？', '提示', { type: 'warning' }).then(async () => {
     await request.delete(`/tables/${id}`)

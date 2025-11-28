@@ -1,4 +1,7 @@
-// [菜品页面] 菜品图文信息录入与上下架管理界面
+/**
+ * @file Product.vue
+ * @description 菜品管理页面，负责菜品的增删改查、图片上传及库存管理
+ */
 <template>
   <div class="page-container">
     <el-card shadow="hover" class="main-card">
@@ -20,17 +23,17 @@
         <el-table-column label="图片" width="120" align="center">
           <template #default="scope">
             <el-image 
-  style="width: 60px; height: 60px; border-radius: 4px; border: 1px solid #eee;"
-  :src="scope.row.image || '/default.png'" 
-  :preview-src-list="[scope.row.image || '/default.png']"
-  fit="cover"
->
-  <template #error>
-    <div class="image-slot">
-      <img src="/default.png" style="width: 100%; height: 100%; object-fit: cover;" />
-    </div>
-  </template>
-</el-image>
+              style="width: 60px; height: 60px; border-radius: 4px; border: 1px solid #eee;"
+              :src="scope.row.image || '/default.png'" 
+              :preview-src-list="[scope.row.image || '/default.png']"
+              fit="cover"
+            >
+              <template #error>
+                <div class="image-slot">
+                  <img src="/default.png" style="width: 100%; height: 100%; object-fit: cover;" />
+                </div>
+              </template>
+            </el-image>
           </template>
         </el-table-column>
 
@@ -49,15 +52,40 @@
           </template>
         </el-table-column>
 
+        <el-table-column label="状态" width="100" align="center">
+          <template #default="scope">
+            <el-tag v-if="scope.row.status === 1" type="success" effect="dark" size="small">销售中</el-tag>
+            <el-tag v-else type="info" effect="plain" size="small">已下架</el-tag>
+          </template>
+        </el-table-column>
+
         <el-table-column prop="stock" label="库存" width="100" align="center" />
         
         <el-table-column label="创建时间" width="180" align="center">
           <template #default="scope">{{ formatTime(scope.row.createTime) }}</template>
         </el-table-column>
 
-        <el-table-column label="操作" width="120" align="center">
+        <el-table-column label="操作" width="150" align="center">
           <template #default="scope">
-            <el-button type="danger" link icon="Delete" @click="handleDelete(scope.row.id)">下架</el-button>
+            <el-button 
+              v-if="scope.row.status === 1"
+              type="danger" 
+              link 
+              icon="Delete" 
+              @click="handleOffShelf(scope.row.id)"
+            >
+              下架
+            </el-button>
+
+            <el-button 
+              v-else
+              type="primary" 
+              link 
+              icon="Upload" 
+              @click="handleOnShelf(scope.row.id)"
+            >
+              上架
+            </el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -105,16 +133,18 @@
 import { ref, onMounted } from 'vue'
 import request from '../utils/request'
 import { formatTime, formatPrice } from '../utils/format'
-import { Plus, Delete, Picture } from '@element-plus/icons-vue'
+import { Plus, Delete, Upload } from '@element-plus/icons-vue' // 引入 Upload 图标
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { UploadProps } from 'element-plus'
 
+// 页面加载状态与数据源
 const loading = ref(false)
 const tableData = ref([])
 const categoryList = ref<any[]>([])
 const dialogVisible = ref(false)
-const form = ref<any>({ name: '', categoryId: null, priceYuan: 0, stock: 999, image: '', description: '' })
+const form = ref<any>({ name: '', categoryId: null, priceYuan: 0, stock: 999, image: '', description: '', status: 1 })
 
+// 初始化获取商品列表与分类列表
 const fetchData = async () => {
   loading.value = true
   try {
@@ -124,11 +154,13 @@ const fetchData = async () => {
   } finally { loading.value = false }
 }
 
+// 打开新增弹窗重置表单
 const handleCreate = () => {
-  form.value = { name: '', categoryId: null, priceYuan: 0, stock: 999, image: '', description: '' }
+  form.value = { name: '', categoryId: null, priceYuan: 0, stock: 999, image: '', description: '', status: 1 }
   dialogVisible.value = true
 }
 
+// 提交菜品表单
 const submitForm = async () => {
   if (!form.value.name || !form.value.categoryId) return ElMessage.warning('请填写完整')
   const submitData = { ...form.value, price: Math.round(form.value.priceYuan * 100) }
@@ -139,15 +171,39 @@ const submitForm = async () => {
   fetchData()
 }
 
-const handleDelete = (id: number) => {
-  ElMessageBox.confirm('确认下架？', '提示', { type: 'warning' }).then(async () => {
-    // await request.delete(`/products/${id}`)
-    ElMessage.info('演示环境暂不删除')
+// 下架菜品逻辑 (status -> 0)
+const handleOffShelf = (id: number) => {
+  ElMessageBox.confirm('确认下架该菜品？下架后用户端将不可见。', '提示', { type: 'warning' }).then(async () => {
+    try {
+      await request.patch(`/products/${id}`, { status: 0 })
+      ElMessage.success('已下架')
+      fetchData()
+    } catch (e: any) {
+      console.error(e)
+      ElMessage.error('操作失败')
+    }
   })
 }
 
-// 上传逻辑
+// 上架菜品逻辑 (status -> 1)
+const handleOnShelf = (id: number) => {
+  // 直接上架通常不需要强提醒，或者给个轻提示即可
+  ElMessageBox.confirm('确认重新上架该菜品？', '提示', { type: 'info' }).then(async () => {
+    try {
+      await request.patch(`/products/${id}`, { status: 1 })
+      ElMessage.success('已上架')
+      fetchData()
+    } catch (e: any) {
+      console.error(e)
+      ElMessage.error('操作失败')
+    }
+  })
+}
+
+// 图片上传成功回调
 const handleUploadSuccess: UploadProps['onSuccess'] = (res) => { form.value.image = res.url }
+
+// 上传前校验文件大小
 const beforeUpload: UploadProps['beforeUpload'] = (file) => {
   if (file.size / 1024 / 1024 > 2) { ElMessage.error('图片需小于2MB'); return false }
   return true

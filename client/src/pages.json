@@ -1,4 +1,6 @@
+//Uni-app 全局页面路由、窗口表现及底层导航配置
 {
+	//定义应用内所有页面的路径索引与窗口样式配置
 	"pages": [
 		{
 			"path": "pages/login/login",
@@ -9,31 +11,35 @@
 		{
 			"path": "pages/index/index",
 			"style": {
-				"navigationBarTitleText": "点餐"
+				"navigationBarTitleText": "店铺名",
+				"navigationStyle": "custom"
 			}
 		},
 		{
 			"path": "pages/order/order",
 			"style": {
-				"navigationBarTitleText": "我的订单"
+				"navigationBarTitleText": "我的订单",
+				"navigationStyle": "custom"
 			}
 		},
 		{
 			"path": "pages/mine/mine",
 			"style": {
 				"navigationStyle": "custom"
-			} // 关键：隐藏默认导航栏，因为我们做了自定义头部背景
+			}
 		}
 	],
+	
+	//配置客户端底部的 TabBar 菜单与图标资源路径
 	"tabBar": {
-		"color":="#909399",
-		"selectedColor":="#2979ff",
-		"backgroundColor":="#ffffff",
+		"color": "#909399",
+		"selectedColor": "#2979ff",
+		"backgroundColor": "#ffffff",
 		"list": [
 			{
 				"pagePath": "pages/index/index",
 				"text": "点餐",
-				"iconPath": "static/images/home.png", // 你需要找两个图标放在 static 文件夹
+				"iconPath": "static/images/home.png",
 				"selectedIconPath": "static/images/home-fill.png"
 			},
 			{
@@ -43,19 +49,23 @@
 				"selectedIconPath": "static/images/order-fill.png"
 			},
 			{
-            "pagePath": "pages/mine/mine",
-            "text": "我的",
-            "iconPath": "static/images/user.png",
-            "selectedIconPath": "static/images/user-fill.png"
-        }
+				"pagePath": "pages/mine/mine",
+				"text": "我的",
+				"iconPath": "static/images/user.png",
+				"selectedIconPath": "static/images/user-fill.png"
+			}
 		]
 	},
+
+	//定义应用所有页面的默认导航栏样式及背景色
 	"globalStyle": {
 		"navigationBarTextStyle": "black",
 		"navigationBarTitleText": "uni-app",
 		"navigationBarBackgroundColor": "#F8F8F8",
 		"backgroundColor": "#F8F8F8"
 	},
+
+	//配置 easycom 规则以实现 UI 组件库(uView Plus)的自动按需引入
 	"easycom": {
 		"autoscan": true,
 		"custom": {

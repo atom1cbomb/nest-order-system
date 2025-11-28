@@ -1,4 +1,7 @@
-// [分类页面] 菜品分类列表展示与维护界面
+/**
+ * @file Category.vue
+ * @description 分类管理页面，处理菜品分类的创建、排序与维护
+ */
 <template>
   <div class="page-container">
     <el-card shadow="hover" class="main-card">
@@ -57,17 +60,21 @@
 </template>
 
 <script setup lang="ts">
+
+
 import { ref, onMounted } from 'vue'
 import request from '../utils/request'
-import { formatTime } from '../utils/format' // 引入工具函数
+import { formatTime } from '../utils/format'
 import { Plus, Delete } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
+// 列表数据与加载状态
 const loading = ref(false)
 const tableData = ref([])
 const dialogVisible = ref(false)
 const form = ref({ name: '', sort: 1 })
 
+// 获取分类列表
 const fetchList = async () => {
   loading.value = true
   try {
@@ -78,11 +85,13 @@ const fetchList = async () => {
   }
 }
 
+// 打开新增弹窗
 const handleCreate = () => {
   form.value = { name: '', sort: 1 }
   dialogVisible.value = true
 }
 
+// 提交分类信息
 const submitForm = async () => {
   if (!form.value.name) return ElMessage.warning('请输入名称')
   await request.post('/categories', form.value)
@@ -91,6 +100,7 @@ const submitForm = async () => {
   fetchList()
 }
 
+// 删除分类
 const handleDelete = (id: number) => {
   ElMessageBox.confirm('确定要删除吗？', '提示', { type: 'warning' })
     .then(async () => {
@@ -104,7 +114,6 @@ onMounted(() => fetchList())
 </script>
 
 <style scoped>
-
 .page-container { padding: 20px; background-color: #f0f2f5; min-height: 100vh; }
 .main-card { border-radius: 8px; }
 .header-actions { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }

@@ -14,9 +14,12 @@ export class ProductsService {
   }
 
   // 2. 查询所有菜品 (包含分类信息)
-  findAll() {
+  findAll(status?: number) {
+    const where = status !== undefined ? { status } : {};
+    
     return this.prisma.product.findMany({
-      include: { category: true }, // <--- 关键：连表查询，把分类信息也带出来
+      where, 
+      include: { category: true },
       orderBy: { createTime: 'desc' }
     });
   }
@@ -30,6 +33,11 @@ export class ProductsService {
   }
 
   findOne(id: number) { return `This action returns a #${id} product`; }
-  update(id: number, updateProductDto: any) { return `This action updates a #${id} product`; }
+  update(id: number, updateProductDto: any) {
+    return this.prisma.product.update({
+      where: { id },        
+      data: updateProductDto 
+    });
+  }
   remove(id: number) { return `This action removes a #${id} product`; }
 }
