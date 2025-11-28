@@ -10,19 +10,10 @@
 </template>
 
 <script setup lang="ts">
-/**
- * 登录模块逻辑实现
- * 主要负责处理微信登录流程，获取用户凭证并与后端进行交互以完成身份验证。
- */
+// 登录模块逻辑：处理微信登录并与后端交互完成身份验证
 const BASE_URL = import.meta.env.VITE_SERVER_BASEURL || 'http://127.0.0.1:3000'
 
-/**
- * 处理登录点击事件
- * 1. 调用 uni.login 获取微信临时登录凭证 (code)。
- * 2. 将 code 发送至后端 /auth/login 接口进行验证。
- * 3. 获取后端返回的 JWT Token 并存储至本地缓存。
- * 4. 登录成功后跳转至点餐首页。
- */
+// 处理登录点击事件：调用 uni.login 获取 code 并发送至后端完成鉴权
 const handleLogin = () => {
   uni.login({
     provider: 'weixin',

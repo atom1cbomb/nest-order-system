@@ -1,4 +1,7 @@
-// [后端服务入口文件] 后端服务启动入口与全局中间件配置
+/**
+ * @file server/src/main.ts
+ * @description 后端服务入口，启动 NestJS 应用并配置全局中间件
+ */
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 

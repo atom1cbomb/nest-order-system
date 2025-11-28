@@ -1,4 +1,7 @@
-// [网络请求] Axios拦截器封装与统一错误处理
+/**
+ * @file admin/src/utils/request.ts
+ * @description 网络请求封装：Axios 拦截器与统一错误处理
+ */
 import axios from 'axios'
 import { ElMessage } from 'element-plus'
 
@@ -12,10 +15,8 @@ service.interceptors.response.use(
     return response.data
   },
   (error) => {
-    // --- 修改开始：增强错误提示 ---
-    
+
     // 1. 尝试获取后端返回的详细业务错误信息
-    // NestJS 默认异常返回格式通常在 response.data.message 中
     const apiMessage = error.response?.data?.message
     
     // 2. 处理消息格式：后端可能返回字符串，也可能返回数组（如DTO校验错误）
@@ -29,8 +30,7 @@ service.interceptors.response.use(
 
     // 3. 显示具体的错误提示
     ElMessage.error(errorMessage)
-    
-    // --- 修改结束 ---
+  
 
     return Promise.reject(error)
   }

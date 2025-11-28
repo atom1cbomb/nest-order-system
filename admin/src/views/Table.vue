@@ -1,5 +1,5 @@
 /**
- * @file Table.vue
+ * @file admin/src/views/Table.vue
  * @description 桌号管理页面，用于餐厅桌号的生成、排序与删除
  */
 <template>

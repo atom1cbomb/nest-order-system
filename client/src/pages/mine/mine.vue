@@ -1,10 +1,13 @@
+/**
+ * @file client/src/pages/mine/mine.vue
+ * @description 个人中心页面，展示用户信息、订单入口与设置项（uni-app）
+ */
 <template>
   <view class="wrap">
     <view class="header-bg">
       <view class="user-info-box">
         <button class="avatar-btn" open-type="chooseAvatar" @chooseavatar="onChooseAvatar">
           <image :src="userInfo.avatar || '/static/logo.png'" mode="aspectFill" class="avatar"></image>
-          <view class="camera-icon"><u-icon name="camera-fill" color="#fff" size="12"></u-icon></view>
         </button>
         
         <view class="nickname-box">
@@ -205,15 +208,7 @@ onShow(() => {
   
   /* 头像图片 */
   .avatar { width: 100%; height: 100%; border-radius: 50%; }
-  
-  /* 相机图标 */
-  .camera-icon { 
-    position: absolute; bottom: 4rpx; right: 4rpx; 
-    background: #2979ff; 
-    border: 4rpx solid #fff; 
-    border-radius: 50%; width: 40rpx; height: 40rpx; 
-    display: flex; align-items: center; justify-content: center; 
-  }
+
   
   /* 昵称编辑区域 */
   .nickname-box {

@@ -1,12 +1,10 @@
-// [订单服务] 订单核心交易逻辑与自动接单判断实现
+/**
+ * @file server/src/orders/orders.service.ts
+ * @description 订单服务，处理订单创建、查询、状态更新及统计逻辑
+ */
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { EventsGateway } from '../events/events.gateway';
-
-/**
- * [订单服务层]
- * 封装订单模块的核心业务逻辑，处理数据库交互、事务管理及实时消息推送。
- */
 @Injectable()
 export class OrdersService {
   constructor(
@@ -14,10 +12,7 @@ export class OrdersService {
     private eventsGateway: EventsGateway
   ) {}
 
-  /**
-   * [创建订单]
-   * 执行事务操作：扣减库存、生成取餐号、创建订单记录，并通过 WebSocket 通知管理端。
-   */
+  // 创建订单，执行事务操作扣减库存、生成取餐号并创建订单，然后通过 WebSocket 通知管理端。
   async create(userId: number, createOrderDto: any) {
     const { items, totalPrice, tableNumber } = createOrderDto;
 
@@ -81,10 +76,7 @@ export class OrdersService {
     });
   }
 
-  /**
-   * [查询所有订单]
-   * 根据筛选条件返回订单列表。
-   */
+  // 查询所有订单，根据筛选条件返回订单列表。
   findAll(query: any = {}) {
     const { startDate, endDate, userId, minPrice, maxPrice } = query;
     const where: any = {};
@@ -109,9 +101,7 @@ export class OrdersService {
     });
   }
 
-  /**
-   * [查询我的订单]
-   */
+  // 查询我的订单，返回用户下的订单列表。
   findMine(userId: number) {
     return this.prisma.order.findMany({
       where: { userId },
@@ -120,9 +110,7 @@ export class OrdersService {
     });
   }
 
-  /**
-   * [查询单条详情]
-   */
+  // 查询单条订单详情并返回关联项。
   findOne(id: number) {
     return this.prisma.order.findUnique({
       where: { id },
@@ -130,30 +118,21 @@ export class OrdersService {
     });
   }
 
-  /**
-   * [更新订单]
-   */
+  // 更新订单并返回更新后的记录。
   async update(id: number, updateOrderDto: any) {
     const order = await this.prisma.order.update({
       where: { id },
       data: updateOrderDto,
     });
-    // 可以选择在此处也推送更新事件
-    // this.eventsGateway.server.emit('orderUpdated', order);
     return order;
   }
 
-  /**
-   * [删除订单]
-   */
+  // 删除指定订单并返回删除结果。
   remove(id: number) {
     return this.prisma.order.delete({ where: { id } });
   }
 
-  /**
-   * [核心统计逻辑]
-   * 聚合计算看板所需的关键指标。
-   */
+  // 计算看板所需的关键统计指标并返回结果。
   async getStats() {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -217,8 +196,6 @@ export class OrdersService {
     }
 
     // 3. 计算分类销量占比
-    // 逻辑：获取所有订单详情 -> 关联商品 -> 关联分类 -> 聚合统计
-    // 注意：由于 Prisma 暂不支持深度嵌套的 groupBy，这里采用先查出所有项在内存聚合的方式（数据量大时需优化为原生 SQL）
     const allOrderItems = await this.prisma.orderItem.findMany({
       select: { productName: true }
     });
@@ -250,7 +227,7 @@ export class OrdersService {
 
     return {
       todayOrders,
-      todayRevenue: todayRevenue / 100, // 转为元
+      todayRevenue: todayRevenue / 100, 
       yesterdayOrders,
       yesterdayRevenue: yesterdayRevenue / 100,
       totalProducts,

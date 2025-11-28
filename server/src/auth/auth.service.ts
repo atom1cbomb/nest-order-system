@@ -1,4 +1,7 @@
-// [认证服务] 微信OpenID校验与JWT令牌生成逻辑
+/**
+ * @file server/src/auth/auth.service.ts
+ * @description 认证服务，处理微信登录与 JWT 令牌生成
+ */
 import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma/prisma.service';

@@ -1,4 +1,8 @@
-// [工具函数] 时间格式化与金额转换通用工具
+/**
+ * @file admin/src/utils/format.ts
+ * @description 通用工具：时间与金额格式化
+ */
+
 // 格式化时间：YYYY-MM-DD HH:mm:ss
 export const formatTime = (timeStr: string) => {
   if (!timeStr) return '--'

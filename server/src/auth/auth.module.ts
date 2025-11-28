@@ -1,10 +1,14 @@
+/**
+ * @file server/src/auth/auth.module.ts
+ * @description 认证模块，注册鉴权相关的服务与策略
+ */
 import { Module } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { JwtModule } from '@nestjs/jwt';
 import { PrismaService } from '../prisma/prisma.service';
 import { PassportModule } from '@nestjs/passport';
-import { JwtStrategy } from './jwt.strategy'; // 稍后创建
+import { JwtStrategy } from './jwt.strategy';
 
 @Module({
   imports: [

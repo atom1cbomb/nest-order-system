@@ -1,3 +1,7 @@
+/**
+ * @file server/src/categories/categories.service.ts
+ * @description 分类服务，封装分类模块的业务逻辑与数据库交互
+ */
 import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto'; // 确保引入 DTO

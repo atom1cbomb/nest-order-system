@@ -1,4 +1,7 @@
-// [根组件] 小程序生命周期管理与全局样式入口
+/**
+ * @file client/src/App.vue
+ * @description 客户端根组件，负责小程序生命周期管理与全局样式入口
+ */
 <script setup lang="ts">
 import { onLaunch, onShow, onHide } from "@dcloudio/uni-app";
 onLaunch(() => {

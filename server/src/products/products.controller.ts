@@ -1,3 +1,7 @@
+/**
+ * @file server/src/products/products.controller.ts
+ * @description 菜品控制器，提供菜品相关的 CRUD 接口
+ */
 import { Controller, Get, Post, Body, Patch, Param, Delete ,Query} from '@nestjs/common';
 import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';

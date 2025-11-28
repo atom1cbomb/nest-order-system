@@ -1,7 +1,6 @@
-//Uni-app 全局页面路由、窗口表现及底层导航配置
 {
-	//定义应用内所有页面的路径索引与窗口样式配置
-	"pages": [
+  "$comment": "pages.json，uni-app 全局页面路由与导航配置",
+  "pages": [
 		{
 			"path": "pages/login/login",
 			"style": {
@@ -29,9 +28,8 @@
 			}
 		}
 	],
-	
-	//配置客户端底部的 TabBar 菜单与图标资源路径
-	"tabBar": {
+
+  "tabBar": {
 		"color": "#909399",
 		"selectedColor": "#2979ff",
 		"backgroundColor": "#ffffff",
@@ -57,16 +55,14 @@
 		]
 	},
 
-	//定义应用所有页面的默认导航栏样式及背景色
-	"globalStyle": {
+  "globalStyle": {
 		"navigationBarTextStyle": "black",
 		"navigationBarTitleText": "uni-app",
 		"navigationBarBackgroundColor": "#F8F8F8",
 		"backgroundColor": "#F8F8F8"
 	},
 
-	//配置 easycom 规则以实现 UI 组件库(uView Plus)的自动按需引入
-	"easycom": {
+  "easycom": {
 		"autoscan": true,
 		"custom": {
 			"^u-(.*)": "uview-plus/components/u-$1/u-$1.vue",

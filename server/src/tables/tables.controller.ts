@@ -1,3 +1,7 @@
+/**
+ * @file server/src/tables/tables.controller.ts
+ * @description 桌号控制器，提供桌号管理接口
+ */
 import { Controller, Get, Post, Body, Param, Delete } from '@nestjs/common';
 import { TablesService } from './tables.service';
 

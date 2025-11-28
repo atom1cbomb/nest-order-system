@@ -1,3 +1,7 @@
+/**
+ * @file server/src/categories/categories.controller.ts
+ * @description 菜品分类控制器，处理分类的增删改查接口
+ */
 import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
 import { CategoriesService } from './categories.service';
 import { CreateCategoryDto } from './dto/create-category.dto';

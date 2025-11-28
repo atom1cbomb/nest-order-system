@@ -1,5 +1,5 @@
 /**
- * @file App.vue
+ * @file admin/src/App.vue
  * @description 应用程序根组件，负责布局结构与全局状态监听
  */
 <template>

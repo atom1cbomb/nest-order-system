@@ -1,5 +1,5 @@
 /**
- * @file Login.vue
+ * @file admin/src/views/Login.vue
  * @description 系统登录页面，处理管理员身份验证与 Token 存储
  */
 <template>

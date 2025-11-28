@@ -1,3 +1,7 @@
+/**
+ * @file server/src/tables/tables.service.ts
+ * @description 桌号服务，负责桌号的增删查等操作
+ */
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 

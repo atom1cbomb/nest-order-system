@@ -1,4 +1,7 @@
-// [认证控制] 微信登录接口与凭证发放控制器
+/**
+ * @file server/src/auth/auth.controller.ts
+ * @description 认证控制器，提供微信登录接口
+ */
 import { Controller, Post, Body } from '@nestjs/common';
 import { AuthService } from './auth.service';
 

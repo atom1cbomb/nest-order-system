@@ -1,4 +1,7 @@
-// [消息网关] 基于WebSocket的实时订单消息广播网关
+/**
+ * @file server/src/events/events.gateway.ts
+ * @description WebSocket 消息网关，用于实时订单广播（socket.io）
+ */
 import { WebSocketGateway, WebSocketServer } from '@nestjs/websockets';
 import { Server } from 'socket.io';
 

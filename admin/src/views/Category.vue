@@ -1,5 +1,5 @@
 /**
- * @file Category.vue
+ * @file admin/src/views/Category.vue
  * @description 分类管理页面，处理菜品分类的创建、排序与维护
  */
 <template>
@@ -82,9 +82,7 @@ const tableData = ref([])
 const dialogVisible = ref(false)
 const form = ref({ name: '', sort: 1 })
 
-/**
- * @description 获取分类列表数据
- */
+// 获取分类列表数据
 const fetchList = async () => {
   loading.value = true
   try {
@@ -97,17 +95,13 @@ const fetchList = async () => {
   }
 }
 
-/**
- * @description 打开新增弹窗，重置表单
- */
+// 打开新增弹窗并重置表单数据
 const handleCreate = () => {
   form.value = { name: '', sort: 1 }
   dialogVisible.value = true
 }
 
-/**
- * @description 提交分类表单
- */
+// 提交分类表单并刷新列表
 const submitForm = async () => {
   if (!form.value.name) return ElMessage.warning('请输入名称')
   try {
@@ -121,10 +115,7 @@ const submitForm = async () => {
   }
 }
 
-/**
- * @description 删除分类
- * @param {number} id - 分类ID
- */
+// 删除分类（带确认弹窗）
 const handleDelete = (id: number) => {
   ElMessageBox.confirm('确定要删除该分类吗？若该分类下包含菜品，可能导致删除失败。', '警告', { 
     confirmButtonText: '确定',
@@ -139,7 +130,6 @@ const handleDelete = (id: number) => {
       await fetchList()
     } catch (error: any) {
       // 捕获异常，防止未捕获的 Promise 错误
-      // 具体的错误提示消息 'request.ts' 拦截器已经弹出了，这里只需记录日志
       console.error('删除操作未完成:', error)
     }
   }).catch(() => {
@@ -147,6 +137,7 @@ const handleDelete = (id: number) => {
   })
 }
 
+// 组件挂载后获取分类列表
 onMounted(() => fetchList())
 </script>
 

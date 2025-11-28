@@ -1,3 +1,7 @@
+/**
+ * @file client/src/pages/index/index.vue
+ * @description 点餐客户端主页面，展示分类、商品与购物车（uni-app）
+ */
 <template>
   <view class="u-wrap">
     <u-navbar

@@ -1,5 +1,5 @@
 /**
- * @file Order.vue
+ * @file admin/src/views/Order.vue
  * @description 订单管理页面，包含实时订单监控、状态流转（接单/完成）及自动接单设置
  */
 

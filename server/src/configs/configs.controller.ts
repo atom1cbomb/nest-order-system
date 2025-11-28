@@ -1,4 +1,7 @@
-// [配置控制] 系统全局开关（如自动接单）管理接口
+/**
+ * @file server/src/configs/configs.controller.ts
+ * @description 系统配置控制器，管理系统全局开关与配置项
+ */
 import { Controller, Get, Body, Post, Param } from '@nestjs/common';
 import { ConfigsService } from './configs.service';
 

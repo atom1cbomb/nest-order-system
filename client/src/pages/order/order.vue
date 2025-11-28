@@ -1,3 +1,7 @@
+/**
+ * @file client/src/pages/order/order.vue
+ * @description 我的订单页面，显示用户历史订单及实时状态（uni-app）
+ */
 <template>
   <view class="wrap">
     <u-navbar

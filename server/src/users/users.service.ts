@@ -1,4 +1,7 @@
-// [用户服务] 用户数据持久化与业务逻辑处理
+/**
+ * @file server/src/users/users.service.ts
+ * @description 用户服务，处理用户数据的查询与更新
+ */
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 

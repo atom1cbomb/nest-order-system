@@ -1,5 +1,5 @@
 /**
- * @file Product.vue
+ * @file admin/src/views/Product.vue
  * @description 菜品管理页面，负责菜品的增删改查、图片上传及库存管理
  */
 <template>
@@ -163,19 +163,15 @@ const fetchData = async () => {
   } finally { loading.value = false }
 }
 
-/**
- * @description 打开新增弹窗重置表单
- */
+// 打开新增弹窗并重置表单
 const handleCreate = () => {
   // 显式清空 id 以确保是新增模式
   form.value = { id: undefined, name: '', categoryId: null, priceYuan: 0, stock: 999, image: '', description: '', status: 1 }
   dialogVisible.value = true
 }
 
-/**
- * @description 打开编辑弹窗并回显数据
- * @param {object} row 当前行数据
- */
+// 打开编辑弹窗并回显数据
+// row: 当前行数据
 const handleEdit = (row: any) => {
   // 深拷贝避免直接修改表格数据，并处理价格单位（分转元）
   form.value = { 
@@ -187,9 +183,7 @@ const handleEdit = (row: any) => {
   dialogVisible.value = true
 }
 
-/**
- * @description 提交菜品表单（区分新增与编辑）
- */
+// 提交菜品表单（区分新增与编辑）
 const submitForm = async () => {
   if (!form.value.name || !form.value.categoryId) return ElMessage.warning('请填写完整')
   

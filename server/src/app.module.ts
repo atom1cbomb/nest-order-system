@@ -1,4 +1,7 @@
-// [根模块] 应用程序主模块与依赖注入注册中心
+/**
+ * @file server/src/app.module.ts
+ * @description 应用主模块，注册全局模块与提供者
+ */
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -9,8 +12,8 @@ import { UsersModule } from './users/users.module';
 import { CategoriesModule } from './categories/categories.module';
 import { ProductsModule } from './products/products.module';
 import { OrdersModule } from './orders/orders.module';
-import { TablesModule } from './tables/tables.module';   // 👈 补回桌号
-import { ConfigsModule } from './configs/configs.module'; // 👈 补回配置
+import { TablesModule } from './tables/tables.module';
+import { ConfigsModule } from './configs/configs.module';
 import { UploadController } from './upload/upload.controller';
 
 @Module({

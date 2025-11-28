@@ -1,4 +1,7 @@
-// [路由配置] 页面路由定义与导航守卫配置
+/**
+ * @file admin/src/router/index.ts
+ * @description 路由配置文件，定义应用路由与导航守卫
+ */
 import { createRouter, createWebHistory } from 'vue-router'
 import Dashboard from '../views/Dashboard.vue'
 import Login from '../views/Login.vue'
@@ -7,10 +10,7 @@ import Product from '../views/Product.vue'
 import Order from '../views/Order.vue'
 import Table from '../views/Table.vue'
 
-/**
- * 路由配置文件
- * 定义应用的路由规则、页面组件映射及导航守卫
- */
+// 路由配置文件：定义应用的路由规则、页面组件映射及导航守卫
 
 const routes = [
   {
@@ -56,10 +56,7 @@ const router = createRouter({
   routes
 })
 
-/**
- * 全局前置守卫
- * 校验用户是否已登录，未登录则强制跳转至登录页
- */
+// 全局前置守卫：校验用户是否已登录，未登录则跳转至登录页
 router.beforeEach((to, from, next) => {
   const token = localStorage.getItem('admin_token')
   

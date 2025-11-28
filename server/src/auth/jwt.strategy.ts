@@ -1,4 +1,7 @@
-// [鉴权策略] JWT身份验证守卫与解析策略
+/**
+ * @file server/src/auth/jwt.strategy.ts
+ * @description JWT 鉴权策略，解析并验证令牌
+ */
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { PassportStrategy } from '@nestjs/passport';
 import { Injectable } from '@nestjs/common';

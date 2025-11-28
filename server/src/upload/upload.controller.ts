@@ -1,4 +1,7 @@
-// [上传模块] 静态资源上传与文件服务控制器
+/**
+ * @file server/src/upload/upload.controller.ts
+ * @description 上传模块控制器，处理静态资源上传与返回文件地址
+ */
 import { Controller, Post, UseInterceptors, UploadedFile } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';

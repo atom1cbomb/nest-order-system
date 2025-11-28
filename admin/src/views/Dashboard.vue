@@ -1,5 +1,5 @@
 /**
- * @file Dashboard.vue
+ * @file admin/src/views/Dashboard.vue
  * @description 数据看板页面，展示核心运营指标及可视化图表（ECharts）
  */
 <template>

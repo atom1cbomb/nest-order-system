@@ -1,4 +1,7 @@
-// [配置服务] 系统参数的读取与持久化更新逻辑
+/**
+ * @file server/src/configs/configs.service.ts
+ * @description 配置服务，读取与更新系统参数
+ */
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
